@@ -1,53 +1,26 @@
-# Dockerfile para EasyPanel - Versión robusta
+# Dockerfile principal - Versión que NO hace build del frontend
 FROM node:18-alpine
 
-# Instalar dependencias del sistema
-RUN apk add --no-cache \
-    libc6-compat \
-    python3 \
-    make \
-    g++ \
-    git \
-    curl
+# Instalar dependencias básicas
+RUN apk add --no-cache libc6-compat curl
 
 WORKDIR /app
 
-# Copiar package.json del frontend
-COPY package*.json ./
-
-# Limpiar cache de npm y instalar dependencias del frontend
-RUN npm cache clean --force && \
-    npm install --verbose
-
-# Copiar package.json del backend
+# Copiar archivos del servidor
 COPY server/package*.json ./server/
+COPY server/src/ ./server/src/
+COPY server/prisma/ ./server/prisma/
 
-# Instalar dependencias del backend
+# Instalar dependencias del servidor solamente
 WORKDIR /app/server
-RUN npm cache clean --force && \
-    npm install --verbose
-
-# Volver al directorio principal
-WORKDIR /app
-
-# Copiar el resto del código
-COPY . .
-
-# Verificar que los archivos necesarios existen
-RUN ls -la && \
-    ls -la src/ && \
-    cat package.json | grep "build"
-
-# Build del frontend con más información de debug
-RUN npm run build --verbose
+RUN npm install --only=production
 
 # Generar Prisma client
-WORKDIR /app/server
-RUN npx prisma generate --verbose
+RUN npx prisma generate
 
-# Volver al directorio principal y verificar build
+# Copiar archivos estáticos del frontend (pre-construidos)
 WORKDIR /app
-RUN ls -la dist/
+COPY dist/ ./dist/
 
 # Crear directorio para uploads
 RUN mkdir -p uploads
