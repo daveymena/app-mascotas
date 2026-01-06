@@ -1,50 +1,50 @@
-# Multi-stage build para optimizar el tamaño
-FROM node:18-alpine AS base
+# Dockerfile optimizado para EasyPanel
+FROM node:18-alpine
 
-# Instalar dependencias necesarias
-RUN apk add --no-cache libc6-compat
+# Instalar dependencias del sistema necesarias
+RUN apk add --no-cache \
+    libc6-compat \
+    python3 \
+    make \
+    g++ \
+    git
+
 WORKDIR /app
 
 # Copiar archivos de configuración
 COPY package*.json ./
 COPY server/package*.json ./server/
 
-# Instalar dependencias
-RUN npm ci --only=production && npm cache clean --force
-RUN cd server && npm ci --only=production && npm cache clean --force
+# Instalar dependencias del frontend
+RUN npm install
 
-# Build stage para el frontend
-FROM base AS frontend-builder
+# Instalar dependencias del backend
+WORKDIR /app/server
+RUN npm install
+
+# Volver al directorio principal
 WORKDIR /app
+
+# Copiar todo el código fuente
 COPY . .
+
+# Build del frontend
 RUN npm run build
 
-# Build stage para el backend
-FROM base AS backend-builder
+# Generar Prisma client
 WORKDIR /app/server
-COPY server/ .
 RUN npx prisma generate
 
-# Production stage
-FROM node:18-alpine AS production
+# Volver al directorio principal
 WORKDIR /app
 
-# Crear usuario no-root
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copiar archivos necesarios
-COPY --from=frontend-builder /app/dist ./frontend/dist
-COPY --from=backend-builder /app/server ./server
-COPY --from=backend-builder /app/server/node_modules ./server/node_modules
-
-# Configurar permisos
-USER nextjs
+# Crear directorio para uploads
+RUN mkdir -p uploads
 
 # Exponer puerto
 EXPOSE 3001
 
-# Variables de entorno
+# Variables de entorno por defecto
 ENV NODE_ENV=production
 ENV PORT=3001
 
