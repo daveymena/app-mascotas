@@ -1,0 +1,30 @@
+# Dockerfile simple para EasyPanel - Solo backend
+FROM node:18-alpine
+
+# Instalar dependencias básicas
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+# Copiar y construir el frontend localmente primero
+COPY dist/ ./dist/
+COPY server/ ./server/
+
+# Instalar solo dependencias del servidor
+WORKDIR /app/server
+RUN npm install --only=production
+
+# Generar Prisma client
+RUN npx prisma generate
+
+WORKDIR /app
+
+# Exponer puerto
+EXPOSE 3001
+
+# Variables de entorno
+ENV NODE_ENV=production
+ENV PORT=3001
+
+# Comando de inicio
+CMD ["node", "server/src/index.js"]

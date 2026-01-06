@@ -1,12 +1,16 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Servir archivos estáticos del frontend
+app.use(express.static(path.join(__dirname, '../../dist')));
 
 // Base de datos en memoria para mascotas
 let pets = [
@@ -427,4 +431,15 @@ app.listen(PORT, () => {
     console.log('  POST /api/dewormings - Create deworming');
     console.log('  GET  /api/allergies - Get all allergies');
     console.log('  POST /api/allergies - Create allergy');
+});
+
+// Manejar todas las rutas del frontend (SPA)
+app.get('*', (req, res) => {
+    // Si es una ruta de API, no redirigir
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    
+    // Para todas las demás rutas, servir el index.html del frontend
+    res.sendFile(path.join(__dirname, '../../dist/index.html'));
 });
