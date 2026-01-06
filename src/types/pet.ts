@@ -1,22 +1,16 @@
-export interface Pet {
+export interface User {
   id: string;
-  name: string;
-  species: 'dog' | 'cat' | 'bird' | 'rabbit' | 'other';
-  breed: string;
-  birthDate: string;
-  weight: number;
-  imageUrl: string;
-  microchipId?: string;
-  ownerId: string;
+  email: string;
+  name?: string;
 }
 
 export interface Vaccine {
   id: string;
   petId: string;
   name: string;
-  date: string;
+  date: string; // ISO Date
   nextDueDate?: string;
-  veterinarian: string;
+  veterinarian?: string;
   batchNumber?: string;
   notes?: string;
 }
@@ -26,20 +20,20 @@ export interface Appointment {
   petId: string;
   date: string;
   time: string;
-  type: 'checkup' | 'vaccine' | 'surgery' | 'emergency' | 'grooming' | 'other';
-  veterinarian: string;
-  clinic: string;
+  type: string;
+  veterinarian?: string;
+  clinic?: string;
   notes?: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: string;
 }
 
 export interface Allergy {
   id: string;
   petId: string;
   allergen: string;
-  severity: 'mild' | 'moderate' | 'severe';
+  severity?: string;
   symptoms: string[];
-  diagnosedDate: string;
+  diagnosedDate?: string;
   notes?: string;
 }
 
@@ -48,18 +42,22 @@ export interface Deworming {
   petId: string;
   productName: string;
   date: string;
-  nextDueDate: string;
+  nextDueDate?: string;
   veterinarian?: string;
-  notes?: string;
 }
 
-export interface MedicalRecord {
+export interface Pet {
   id: string;
-  petId: string;
-  type: 'diagnosis' | 'treatment' | 'surgery' | 'test';
-  title: string;
-  description: string;
-  date: string;
-  veterinarian: string;
-  attachments?: string[];
+  name: string;
+  species: string;
+  breed?: string;
+  birthDate: string;
+  weight?: number;
+  imageUrl?: string;
+  microchipId?: string;
+  ownerId: string;
+  vaccines?: Vaccine[];
+  appointments?: Appointment[];
+  allergies?: Allergy[];
+  dewormings?: Deworming[];
 }

@@ -1,73 +1,165 @@
 import { Layout } from '@/components/layout/Layout';
-import { DewormingCard } from '@/components/health/DewormingCard';
-import { mockDewormings, mockPets } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
-import { Plus, Bug } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Search, Bug, Calendar, User, Pill } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import api from '@/lib/api';
+
+interface Deworming {
+  id: string;
+  petId: string;
+  petName: string;
+  productName: string;
+  date: string;
+  nextDueDate: string | null;
+  veterinarian: string;
+  dosage: string;
+  notes: string;
+}
 
 const DewormingPage = () => {
-  const [selectedPet, setSelectedPet] = useState<string>('all');
+  const navigate = useNavigate();
+  const [dewormings, setDewormings] = useState<Deworming[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredDewormings = selectedPet === 'all' 
-    ? mockDewormings 
-    : mockDewormings.filter(d => d.petId === selectedPet);
+  useEffect(() => {
+    fetchDewormings();
+  }, []);
+
+  const fetchDewormings = async () => {
+    try {
+      const response = await api.get('/dewormings');
+      setDewormings(response.data);
+    } catch (error) {
+      toast.error('Error al cargar las desparasitaciones');
+      console.error('Error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredDewormings = dewormings.filter(deworming =>
+    deworming.petName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    deworming.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    deworming.veterinarian.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getDueBadge = (nextDueDate: string | null) => {
+    if (!nextDueDate) return null;
+    
+    const dueDate = new Date(nextDueDate);
+    const today = new Date();
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return <Badge className="bg-red-100 text-red-800">Vencida</Badge>;
+    } else if (diffDays <= 7) {
+      return <Badge className="bg-orange-100 text-orange-800">Próxima</Badge>;
+    } else if (diffDays <= 30) {
+      return <Badge className="bg-yellow-100 text-yellow-800">Programada</Badge>;
+    }
+    return <Badge className="bg-green-100 text-green-800">Al día</Badge>;
+  };
 
   return (
     <Layout>
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Control de Desparasitación</h1>
+            <h1 className="text-3xl font-bold mb-2">🐛 Desparasitaciones</h1>
             <p className="text-muted-foreground">
-              Mantén a tus mascotas protegidas con un control regular
+              Control de desparasitación de tus mascotas
             </p>
           </div>
-          <Button variant="hero" size="lg" className="gap-2">
+          <Button 
+            variant="hero" 
+            size="lg" 
+            className="gap-2"
+            onClick={() => navigate('/deworming/add')}
+          >
             <Plus className="w-5 h-5" />
-            Agregar registro
+            Registrar Desparasitación
           </Button>
         </div>
 
-        {/* Filter by pet */}
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">Filtrar por mascota:</span>
-          <Select value={selectedPet} onValueChange={setSelectedPet}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Todas las mascotas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las mascotas</SelectItem>
-              {mockPets.map(pet => (
-                <SelectItem key={pet.id} value={pet.id}>{pet.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por mascota, producto o veterinario..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
       </div>
 
-      {filteredDewormings.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {filteredDewormings.map(deworming => {
-            const pet = mockPets.find(p => p.id === deworming.petId);
-            return (
-              <div key={deworming.id}>
-                {selectedPet === 'all' && pet && (
-                  <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                    <img src={pet.imageUrl} alt={pet.name} className="w-6 h-6 rounded-full object-cover" />
-                    {pet.name}
-                  </p>
-                )}
-                <DewormingCard deworming={deworming} />
-              </div>
-            );
-          })}
+      {isLoading ? (
+        <div className="text-center py-8">Cargando desparasitaciones...</div>
+      ) : filteredDewormings.length === 0 ? (
+        <div className="text-center py-16">
+          <Bug className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground text-lg mb-4">
+            {searchQuery ? 'No se encontraron desparasitaciones' : 'No hay desparasitaciones registradas'}
+          </p>
+          <Button onClick={() => navigate('/deworming/add')}>
+            <Plus className="w-4 h-4 mr-2" />
+            Registrar Primera Desparasitación
+          </Button>
         </div>
       ) : (
-        <div className="text-center py-16">
-          <Bug className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
-          <p className="text-lg text-muted-foreground mb-4">No hay registros de desparasitación</p>
-          <Button variant="outline">Agregar primer registro</Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDewormings.map((deworming) => (
+            <Card key={deworming.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <CardTitle className="text-lg">{deworming.petName}</CardTitle>
+                  {getDueBadge(deworming.nextDueDate)}
+                </div>
+                <p className="text-sm text-muted-foreground font-medium">
+                  {deworming.productName}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span>Aplicada: {new Date(deworming.date).toLocaleDateString('es-ES')}</span>
+                </div>
+                
+                {deworming.nextDueDate && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <span>Próxima: {new Date(deworming.nextDueDate).toLocaleDateString('es-ES')}</span>
+                  </div>
+                )}
+                
+                {deworming.dosage && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Pill className="w-4 h-4 text-muted-foreground" />
+                    <span>Dosis: {deworming.dosage}</span>
+                  </div>
+                )}
+                
+                {deworming.veterinarian && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span>{deworming.veterinarian}</span>
+                  </div>
+                )}
+                
+                {deworming.notes && (
+                  <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                    {deworming.notes}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </Layout>

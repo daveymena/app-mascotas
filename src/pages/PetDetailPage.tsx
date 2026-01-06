@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { mockPets, mockVaccines, mockAppointments, mockAllergies, mockDewormings } from '@/data/mockData';
+// import { mockPets, mockVaccines, mockAppointments, mockAllergies, mockDewormings } from '@/data/mockData';
 import { VaccineCard } from '@/components/health/VaccineCard';
 import { AllergyCard } from '@/components/health/AllergyCard';
 import { DewormingCard } from '@/components/health/DewormingCard';
@@ -9,13 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Weight, 
-  Microchip, 
-  Syringe, 
-  Bug, 
+import {
+  ArrowLeft,
+  Calendar,
+  Weight,
+  Microchip,
+  Syringe,
+  Bug,
   AlertTriangle,
   Edit,
   Cake
@@ -54,9 +54,15 @@ function calculateAge(birthDate: string): string {
   return `${years} ${years === 1 ? 'año' : 'años'} y ${months} ${months === 1 ? 'mes' : 'meses'}`;
 }
 
+import { usePetDetails } from '@/hooks/usePetData';
+
 const PetDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  const pet = mockPets.find(p => p.id === id);
+  // @ts-ignore
+  const { data: pet, isLoading, error } = usePetDetails(id!);
+
+  if (isLoading) return <Layout><div className="flex justify-center items-center h-64">Cargando...</div></Layout>;
+  if (error) return <Layout><div className="text-center py-16 text-red-500">Error al cargar detalles de la mascota</div></Layout>;
 
   if (!pet) {
     return (
@@ -71,10 +77,10 @@ const PetDetailPage = () => {
     );
   }
 
-  const petVaccines = mockVaccines.filter(v => v.petId === pet.id);
-  const petAppointments = mockAppointments.filter(a => a.petId === pet.id);
-  const petAllergies = mockAllergies.filter(a => a.petId === pet.id);
-  const petDewormings = mockDewormings.filter(d => d.petId === pet.id);
+  const petVaccines = pet.vaccines || [];
+  const petAppointments = pet.appointments || [];
+  const petAllergies = pet.allergies || [];
+  const petDewormings = pet.dewormings || [];
 
   return (
     <Layout>

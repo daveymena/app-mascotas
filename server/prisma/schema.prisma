@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  phone     String?
+  avatar    String?
+  plan      Plan     @default(FREE)
+  planExpiry DateTime?
+  stripeCustomerId String?
+  pets      Pet[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("users")
+}
+
+model Pet {
+  id          String   @id @default(uuid())
+  name        String
+  species     String
+  breed       String?
+  birthDate   DateTime
+  weight      Float?
+  imageUrl    String?
+  microchipId String?
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  vaccines    Vaccine[]
+  appointments Appointment[]
+  allergies   Allergy[]
+  dewormings  Deworming[]
+  medicalNotes MedicalNote[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("pets")
+}
+
+model Vaccine {
+  id           String   @id @default(uuid())
+  petId        String
+  pet          Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  name         String
+  date         DateTime
+  nextDueDate  DateTime?
+  veterinarian String?
+  batchNumber  String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  
+  @@map("vaccines")
+}
+
+model Appointment {
+  id           String   @id @default(uuid())
+  petId        String
+  pet          Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  date         DateTime
+  time         String
+  type         String
+  veterinarian String?
+  clinic       String?
+  notes        String?
+  status       AppointmentStatus @default(SCHEDULED)
+  reminder     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@map("appointments")
+}
+
+model Allergy {
+  id            String   @id @default(uuid())
+  petId         String
+  pet           Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  allergen      String
+  severity      AllergySeverity
+  symptoms      String[]
+  diagnosedDate DateTime?
+  treatment     String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  
+  @@map("allergies")
+}
+
+model Deworming {
+  id            String   @id @default(uuid())
+  petId         String
+  pet           Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  productName   String
+  date          DateTime
+  nextDueDate   DateTime?
+  veterinarian  String?
+  dosage        String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  
+  @@map("dewormings")
+}
+
+model MedicalNote {
+  id          String   @id @default(uuid())
+  petId       String
+  pet         Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  title       String
+  content     String
+  attachments String[]
+  veterinarian String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  
+  @@map("medical_notes")
+}
+
+enum Plan {
+  FREE
+  PREMIUM
+  PROFESSIONAL
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum AllergySeverity {
+  MILD
+  MODERATE
+  SEVERE
+}
